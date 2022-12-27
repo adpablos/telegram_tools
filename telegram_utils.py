@@ -1,14 +1,11 @@
 import csv
 import datetime
 import json
-import os
 import random
 import re
-import sys
 import time
 import traceback
 
-import openai
 from easychatgpt import ChatClient
 from telethon import functions
 from telethon.errors.rpcerrorlist import PeerFloodError, UserPrivacyRestrictedError, FloodWaitError
@@ -283,38 +280,6 @@ def summarize(client):
 
     print('Text to summarize: ', to_summarize)
 
-    # openai.api_key = "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"
-    # response = openai.Completion.create(
-    #     model="text-davinci-003",
-    #     prompt=to_summarize + "\n\nTl;dr",
-    #     temperature=0.7,
-    #     max_tokens=60,
-    #     top_p=1.0,
-    #     frequency_penalty=0.0,
-    #     presence_penalty=1
-    # )
-    # print("Summary: " + response)
-
-    # try:
-    #     conversation = Conversation()
-    #     for chunk in conversation.stream("Hello, world!"):
-    #         print(chunk, end="")
-    #         sys.stdout.flush()
-    #
-    # except ChatgptError as chatgpt_error:
-    #
-    #     message = chatgpt_error.message
-    #     code = chatgpt_error.code
-    #     print(message + '. Error code: ' + code)
-    #
-    #     if code == ChatgptErrorCodes.INVALID_ACCESS_TOKEN:
-    #         print("Invalid token")
-
-    # session_token = 'eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..pM0T-5H0r6e-_KPG.1LdUB4NaK6ON5CjCdWpcPXkOBvbvd5Bbja2aCaFQB9oUyFgtpghRLj33NFAPsf1-oUs82gL1C3kn6MAmz56mhvSHJzAB6k3l5CtAZwra0E0t6G8Ds4gC5VLTNo_EbDO0JWqy6UgJNXANHtrvu9E5Cuy2N83Hfbwt6Ocz_6-ljX1ojFZ9I8rz2ypVFDFtIepzw3eqoASFFGapYxNI1aFc9QbhbLYfiZoWhyplw2XCZlREDDMjqSzKRqEj86qu0KMdh4cWZExWuoR1GEcstwZCk2R5Au505073Fd1bkZ1P0SL_z4fml47pi6x51BBObEamG45kCs8PqX4j_N-8gegdSdnUygOhD7189V5BsDgVcHSAK2-rVwHHr-CUU6YVm8ExNeK6drlcwMcAJcr_vi62eG6lwUMjUWzkMAUvXDYrfcxgLhGl_L3exS7SHC0oLSXVYyaYYDy_e0wMhqQ5cfKlYlsCS6jfhd40Ri5ymlDt823J_R4E7EpjJvKA9S7X4589CNLxVva9YxfWD--3F34TNeEPwpaPXfZuO9vLSKK1x14uKGY2p674V87tPOUQqrSRhXgIdSxy_vDqUI6ImoOkAHtfJT8XuRSP4SEQXlr_SMzRojpLGOnXjqMvbiHm-tfQuR8iHI5oASvPXHvXj8YwbqmI6a1zVIgfmbbRFmraSMofZo8NvCpVyFslmpxtXdl6HUQF-vHBeixpxvoMTdkzQT7G244sgq1SQqdSCt0-KDEtMbpFXAkAXl03rwRgnoZtXTOd9g1WHHjty-mvuhqbAwbB3gTb6QFTyD6IbdT2WQganVjB7xqpGcOelsHGo3UOHAebw05bRecprd501Bdc2INwKKIARh2vZLzzPhwaqejFaal3mNfEE4bgQCaycPQnLZ0y6O3MIS56cUSww19ehiZLVa4iTrxjEyVaO3tYUE_hjUCaWjK3fvSF0bBn1fSUW_qSfhQVyJiukaT3-gktV3psqsfaDkGPi-oD-X5L2h4_6H1N6mZX1lBXL3BxwHet3wGMYFJZzCblC3g20RRj4XSmP8lXCgOd7PsPB98GK3yKN8_eq4e-vXiw8BVWY-172hIHj2SvwrSySBzxJ__3ZT9UcwHXDnVQaBkGUm-1_3TemY7kLkzILQDuGJgCfthotTEoGEf_DA1eudVrfpsGSlA9A4Va4J84owBkOAs-Tu4T_0oOoJabER-DA3vb358gLg3ZHg1G-e-OV6MrfkhefUkz7ZbX-exWsvGCsm7q-S_WZMT7j4j9D-kJf4-XsnTktH0-CTERz8U9QSQgoIsyavBPdNywYMEWsFbtkgRBxSvLXqqxmcEG3oWYBYsNn2SaLRf0Etb1rS3pqLdsuY4h1r9vrqIBiDMlOVGONnYUVU7GI7yLjeyV2qafPEAo2h_CMcwVEvdsFlCkqxYKOtcMXlNzz8L_6OPMmwatEye64GilcAC27oVXkqVyVCe2yZ_bspb4xoCg0H5d-63YuJLV-OtiZBwARlI-1kuge6Oyb7HlDxXEc6O12JO41PwLgcNbeDrq3WQr1Io41-_Lmj8q0ONKiO2QAKta0KPtk7RxMqevBZcfYmjVnpbuhj5dO8AehDy9RIV-zxThJuPBiN0QUIDN6Ok-9fsmQJv7m9DyD8M8m1OLA_ih1NokBxqc3MaJAdRrVBaCFaJNFcSgpgZKCS3tmiHMDj6Iv191CWyArTjcqz80K7OSj_wcCUzCQ1Ao4u-EnCTjGWPTZmHU-W__rkn_G6RdWtPlOdSHEdcABU4Ynx70FoBUKBCaL_Lg4B-8Pvjcm8EuQo8TeELDl0wHLJLlUzx0trgdyOxuj96w2qBryuJwYTiNmZZi31fTO7x_SKdzRa00KA0YsLxNZK5di7ybV6Mkm0MLXE0lF9s1F4ob5bvw-cr-rwQ-ZSxkTDFnyah0UKn_1eidvZAKnQtuNngfZMsnal0I0AZPWLhDfGBULlsbzVW8CxOwzPeCuYolGjI-Yxl9WL0LZhndPhLAznaDhGK_d12SR50koSjbU1sbX22oC7K0qXb_AyG7ED1JLV3wwq9JkRe_BuiUGQNSedBpT9V0EQElufvWgq_K5PtE4kRXu6Svg8QwRlqUHjVm4coAdBoJB0jlOQoervpTIM5u_-WWtnGUvK7CXYEaXvun6zfEW5MkdTcCIh5bcRyf3FVXLX6phjy1NsZN9pkoA6QwX-Jk16i5rCUBdJD_GwF4ioaJCjmi10pUbSJ5ZxWzWu7KQyqqqrF6IVeslrSxPDEFk3pGB-4zNGGPTKP7liyGxPXJ2rcZg4Od_iDR7K5h4nAGc24qoc6OzB_j515_5nTWmGfdhiFP_sDoUoYDsgOQcfjizFAJqLEETyZDMBJo1Fl99_TDLL_rlZDU7uC4RD5nKO_S1kqjHL_0IbxxUyxt.Lc_If7Jl773B5ELL4mINPQ'
-    # api = ChatGPT(session_token, verbose=False)
-    # resp = api.send_message('Summarize the following text: ' + to_summarize)
-    # print(resp['message'])
-
     chat = ChatClient("adpabloslopez+openai@gmail.com", "dwp*wpt0xvt-rjn7YPH")
     answer = chat.interact('Summarize the following text: ' + to_summarize)
     print(answer)
@@ -328,7 +293,7 @@ def menu(client):
     2.Scrap members
     3.Migrate channel to supergroup
     4.Add members
-    5.Sumarize        
+    5.Summarize        
     6.Exit/Quit
         """)
         ans = input("What would you like to do? ")
