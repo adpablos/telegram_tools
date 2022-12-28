@@ -12,7 +12,7 @@ from telethon.errors.rpcerrorlist import PeerFloodError, UserPrivacyRestrictedEr
 from telethon.sync import TelegramClient
 from telethon.tl.functions.channels import InviteToChannelRequest, CreateChannelRequest
 from telethon.tl.functions.messages import GetDialogsRequest
-from telethon.tl.types import InputPeerEmpty, InputPeerChannel, InputPeerUser, Channel, Chat
+from telethon.tl.types import InputPeerEmpty, InputPeerChannel, InputPeerUser, Channel, Chat, InputUser
 
 WAIT_BETWEEN_OPERATION = 120
 
@@ -26,7 +26,7 @@ config = {}
 
 
 def evaluate_sleep_message(message):
-    seconds_str = re.findall('[0-9]+', message)
+    seconds_str = re.findall('\d+', message)
     if seconds_str:
         countdown(int(str(seconds_str[0])) + random.randint(60, 180))
 
@@ -78,6 +78,12 @@ def get_users_from_participants(participants):
     return users
 
 
+def evaluate_errors(num_errors):
+    if num_errors >= ERRORS_ALLOWED:
+        print(str(ERRORS_ALLOWED) + " number of errors reached.")
+        quit()
+
+
 def add_members_progressively(client, group_entity, users):
     num_errors = 0
     iteration = 0
@@ -91,7 +97,8 @@ def add_members_progressively(client, group_entity, users):
             print("Adding {}".format(user))
 
             updates = client(InviteToChannelRequest(channel=group_entity,
-                                                    users=[InputPeerUser(user['id'], user['access_hash'])]))
+                                                    users=[InputUser(user_id=user['id'],
+                                                                     access_hash=user['access_hash'])]))
             if len(updates.updates) > 0:
                 print("User {} added.".format(user['first_name'] + ' ' + user['last_name']))
                 members_added += 1
@@ -113,11 +120,8 @@ def add_members_progressively(client, group_entity, users):
             print("Unexpected Error.")
             traceback.print_exc()
         finally:
-            if num_errors < ERRORS_ALLOWED:
-                continue
-            else:
-                print(str(ERRORS_ALLOWED) + " number of errors reached.")
-                quit()
+            evaluate_errors(num_errors)
+
     print("Total members added: " + str(members_added))
 
 
@@ -154,6 +158,11 @@ def get_chats(client):
     return all_chats
 
 
+def is_active(chat):
+    return (isinstance(chat, Channel) or isinstance(chat, Chat)) and (
+            not hasattr(chat, "deactivated") or (hasattr(chat, "deactivated") and not chat.deactivated))
+
+
 def get_groups(client, megagroup):
     chats = []
     groups = []
@@ -167,18 +176,11 @@ def get_groups(client, megagroup):
     chats.extend(result.chats)
     for chat in chats:
         try:
-            # print(chat.title)
-            if (isinstance(chat, Channel) or isinstance(chat, Chat)) \
-                    and (not hasattr(chat, "deactivated") or (hasattr(chat, "deactivated") and not chat.deactivated)):
-                if megagroup is None:
+            is_chat_active = is_active(chat)
+            if is_chat_active:
+                if megagroup is None or (not megagroup and not hasattr(chat, "megagroup") or not chat.megagroup) or \
+                        (megagroup and hasattr(chat, "megagroup") and chat.megagroup):
                     groups.append(chat)
-                elif not megagroup:
-                    if not hasattr(chat, "megagroup") or not chat.megagroup:
-                        groups.append(chat)
-                elif megagroup:
-                    if hasattr(chat, "megagroup") and chat.megagroup:
-                        groups.append(chat)
-
         except Exception as inst:
             print(type(inst))  # the exception instance
             print(inst.args)  # arguments stored in .args
@@ -266,7 +268,7 @@ def migrate_channel_to_supergroup(client):
         print(str(len(users)) + ' users to add in total.')
         add_members_progressively(client, group_entity, users)
     else:
-        print('No channel found with {} name'.for3mat(channel_title))
+        print('No channel found with {} name'.format(channel_title))
 
 
 def summarize(client):
@@ -327,7 +329,7 @@ def menu(client):
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
 
-    with open('config.json', 'r', encoding='utf-8') as f:
+    with open('config/config.json', 'r', encoding='utf-8') as f:
         config = json.loads(f.read())
     clients = generate_session(config)
     menu(clients[1]['client'])

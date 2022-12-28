@@ -29,7 +29,7 @@ def index():
 def get_me():
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
-    with open('config.json', 'r', encoding='utf-8') as f:
+    with open('config/config.json', 'r', encoding='utf-8') as f:
         config = json.loads(f.read())
     accounts = config['accounts']
     api_id = accounts[0]['api_id']
@@ -38,7 +38,7 @@ def get_me():
     print(phone)
     telegram_client = TelegramClient(config['session_folder_path'] + "/" + phone, api_id, api_hash, loop=loop)
     telegram_client.start()
-    return {"MyTelegramAccount started": telegram_client.get_peer_id()}
+    return {"MyTelegramAccount started": telegram_client}
 
 
 def fahrenheit_from(celsius):

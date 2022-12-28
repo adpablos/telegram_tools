@@ -42,5 +42,6 @@ coverage.xml
 # Rope
 .ropepr
 
-/config.json
+/config/config.json
 /.idea
+*.iml
