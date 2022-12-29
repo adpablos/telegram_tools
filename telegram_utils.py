@@ -14,6 +14,8 @@ from telethon.tl.functions.channels import InviteToChannelRequest, CreateChannel
 from telethon.tl.functions.messages import GetDialogsRequest
 from telethon.tl.types import InputPeerEmpty, InputPeerChannel, InputPeerUser, Channel, Chat, InputUser
 
+import logging
+
 WAIT_BETWEEN_OPERATION = 120
 
 WAIT_BETWEEN_CHUNKS = 900
@@ -32,11 +34,11 @@ def evaluate_sleep_message(message):
 
 
 def scrap_members(client):
-    print("Scrapping members.")
+    logging.info("Scrapping members.")
     group = get_group_by_user_input(client, True)
-    print('Fetching Members...')
+    logging.info('Fetching Members...')
     all_participants = client.get_participants(group, aggressive=True)
-    print('Saving In file...')
+    logging.info('Saving In file...')
     with open("data/members.csv", "w", encoding='UTF-8') as f:
         writer = csv.writer(f, delimiter=",", lineterminator="\n")
         writer.writerow(['username', 'user id', 'access hash', 'name', 'group', 'group id', 'group hash'])
@@ -55,7 +57,7 @@ def scrap_members(client):
                 last_name = ""
             name = (first_name + ' ' + last_name).strip()
             writer.writerow([username, user.id, user.access_hash, name, group.title, group.id, group.hash])
-    print('Members scraped successfully.')
+    logging.info('Members scraped successfully.')
 
 
 def get_users_from_file(file_path):
@@ -80,7 +82,7 @@ def get_users_from_participants(participants):
 
 def evaluate_errors(num_errors):
     if num_errors >= ERRORS_ALLOWED:
-        print(str(ERRORS_ALLOWED) + " number of errors reached.")
+        logging.info(str(ERRORS_ALLOWED) + " number of errors reached.")
         quit()
 
 
@@ -91,42 +93,42 @@ def add_members_progressively(client, group_entity, users):
     for user in users:
         iteration += 1
         if iteration % USERS_CHUNK == 0:
-            print("Waiting " + str(WAIT_BETWEEN_CHUNKS) + " Seconds...")
+            logging.info("Waiting " + str(WAIT_BETWEEN_CHUNKS) + " Seconds...")
             countdown(WAIT_BETWEEN_CHUNKS)
         try:
-            print("Adding {}".format(user))
+            logging.info("Adding {}".format(user))
 
             updates = client(InviteToChannelRequest(channel=group_entity,
                                                     users=[InputUser(user_id=user['id'],
                                                                      access_hash=user['access_hash'])]))
             if len(updates.updates) > 0:
-                print("User {} added.".format(user['first_name'] + ' ' + user['last_name']))
+                logging.info("Username {} added.".format(user['name']))
                 members_added += 1
             else:
-                print("User was already in the group.")
+                logging.info("User {} was already in the group.".format(user['name']))
             print("Waiting " + str(WAIT_BETWEEN_OPERATION) + " Seconds...")
             countdown(WAIT_BETWEEN_OPERATION)
         except (PeerFloodError, FloodWaitError) as e:
             num_errors += 1
-            print("Getting Flood Error from telegram operating with api_id {}.".format(client.api_id))
+            logging.info("Getting Flood Error from telegram operating with api_id {}.".format(client.api_id))
             traceback.print_exc()
         except UserPrivacyRestrictedError as e:
             num_errors += 1
-            print("The user's privacy settings do not allow you to do this. Skipping.")
+            logging.info("The user's privacy settings do not allow you to do this. Skipping.")
             traceback.print_exc()
         except Exception as e:
             num_errors += 1
             evaluate_sleep_message(str(e))
-            print("Unexpected Error.")
+            logging.info("Unexpected Error.")
             traceback.print_exc()
         finally:
             evaluate_errors(num_errors)
 
-    print("Total members added: " + str(members_added))
+    logging.info("Total members added: " + str(members_added))
 
 
 def add_members(client, file_path):
-    print("Adding members from " + file_path + ".")
+    logging.info("Adding members from " + file_path + ".")
 
     users = get_users_from_file(file_path)
     group = get_group_by_user_input(client, True)
@@ -136,7 +138,7 @@ def add_members(client, file_path):
 
 
 def set_supergroup(client):
-    print("Setting supergroup.")
+    logging.info("Setting supergroup.")
     target_group = get_group_by_user_input(client, False)
     client(functions.messages.MigrateChatRequest(chat_id=target_group.id))
 
@@ -182,19 +184,19 @@ def get_groups(client, megagroup):
                         (megagroup and hasattr(chat, "megagroup") and chat.megagroup):
                     groups.append(chat)
         except Exception as inst:
-            print(type(inst))  # the exception instance
-            print(inst.args)  # arguments stored in .args
-            print(inst)  # __str__ allows args to be printed directly,
+            logging.info(type(inst))  # the exception instance
+            logging.info(inst.args)  # arguments stored in .args
+            logging.info(inst)  # __str__ allows args to be printed directly,
             continue
     return groups
 
 
 def get_group_by_user_input(client, megagroup):
     groups = get_groups(client, megagroup)
-    print('Choose a group: ')
+    logging.info('Choose a group: ')
     i = 0
     for group in groups:
-        print(str(i) + '- ' + group.title)
+        logging.info(str(i) + '- ' + group.title)
         i += 1
     g_index = input("Enter the number: ")
     return groups[int(g_index)]
@@ -221,26 +223,26 @@ def countdown(t):
 
 def generate_session(configuration):
     sessions = []
-    accounts = configuration['accounts']
+    accounts = configuration['ACCOUNTS']
     for account in accounts:
-        api_id = account['api_id']
-        api_hash = account['api_hash']
-        phone = account['phone']
-        print(phone)
+        api_id = account['API_ID']
+        api_hash = account['API_HASH']
+        phone = account['PHONE']
+        logging.info(phone)
 
-        telegram_client = TelegramClient(configuration['session_folder_path'] + "/" + phone, api_id, api_hash)
+        telegram_client = TelegramClient(configuration['SESSION_FOLDER_PATH'] + "/" + phone, api_id, api_hash)
         telegram_client.start()
         if telegram_client.is_user_authorized():
-            print('Login success')
+            logging.info('Login success')
             sessions.append({"phone": phone, "client": telegram_client})
         else:
-            print('Login fail due to user not authorized. A code has been sent to ' + phone)
+            logging.info('Login fail due to user not authorized. A code has been sent to ' + phone)
             try:
                 telegram_client.send_code_request(phone)
                 telegram_client.sign_in(phone, input("Enter the code: "))
             except Exception as e:
-                print('Error trying to login with ' + phone)
-                print(str(e))
+                logging.info('Error trying to login with ' + phone)
+                logging.info(str(e))
                 continue
     return sessions
 
@@ -254,21 +256,21 @@ def create_super_group(client, channel):
     return result
 
 
-def migrate_channel_to_supergroup(client):
-    channel_title = input("What is the title of your channel? ")
+def migrate_channel_to_supergroup(client, channel_title):
     channel = get_group_by_title(client, False, channel_title)
     if channel is not None:
         group = create_super_group(client, channel)
 
         channel_participants = client.get_participants(channel, aggressive=True)
         users = get_users_from_participants(channel_participants)
-        users = users + get_users_from_file('data/members.csv')
+        # Just for testing purposes, doing the users array bigger. But data is not 100% reliable
+        # users = users + get_users_from_file('data/members.csv')
 
         group_entity = client.get_entity(InputPeerChannel(group.id, group.access_hash))
-        print(str(len(users)) + ' users to add in total.')
+        logging.info(str(len(users)) + ' users to add in total to the channel {}.'.format(group.title))
         add_members_progressively(client, group_entity, users)
     else:
-        print('No channel found with {} name'.format(channel_title))
+        logging.info('No channel found with name {}'.format(channel_title))
 
 
 def summarize(client):
@@ -277,14 +279,14 @@ def summarize(client):
 
     for message in client.iter_messages(group, reverse=True, limit=100):
         if message.text is not None:
-            # print(message.sender_id, ':', message.text)
+            # logging.info(message.sender_id, ':', message.text)
             to_summarize = to_summarize + message.text + "\n"
 
-    print('Text to summarize: ', to_summarize)
+    logging.info('Text to summarize: ', to_summarize)
 
     chat = ChatClient("adpabloslopez+openai@gmail.com", "dwp*wpt0xvt-rjn7YPH")
     answer = chat.interact('Summarize the following text: ' + to_summarize)
-    print(answer)
+    logging.info(answer)
 
 
 def menu(client):
@@ -300,38 +302,43 @@ def menu(client):
         """)
         ans = input("What would you like to do? ")
         if ans == "1":
-            print("\n Set supergroup")
+            logging.info("Set supergroup option selected.")
             set_supergroup(client)
             ans = None
         elif ans == "2":
-            print("\n Scrap members")
+            logging.info("Scrap members")
             scrap_members(client)
             ans = None
         elif ans == "3":
-            print("\n Migrate channel to supergroup")
-            migrate_channel_to_supergroup(client)
+            logging.info("Migrate channel to supergroup option selected.")
+            channel_title = input("What is the title of your channel? ")
+            migrate_channel_to_supergroup(client, channel_title)
             ans = None
         elif ans == "4":
-            print("\n Add members")
+            logging.info("Add members option selected.")
             add_members(client, 'data/members.csv')
             ans = None
         elif ans == "5":
-            print("\n Sumarize")
+            logging.info("Summarize option selected.")
             summarize(client)
             ans = None
         elif ans == "6":
-            print("\n Exit")
+            logging.info("Exit option selected.")
             ans = None
         else:
-            print("\n Not Valid Choice Try again")
+            print("Not Valid Choice selected Try again")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='logs.log', encoding='utf-8', level=logging.INFO)
     start_time = datetime.datetime.now()
 
     with open('config/config.json', 'r', encoding='utf-8') as f:
         config = json.loads(f.read())
-    clients = generate_session(config)
-    menu(clients[1]['client'])
 
-    print("Total time: " + str(datetime.datetime.now() - start_time))
+    clients = generate_session(config)
+    client = clients[0]
+    logging.info("Selected telegram client with phone {}.".format(client['phone']))
+    menu(client['client'])
+
+    logging.info("Total time: " + str(datetime.datetime.now() - start_time))
